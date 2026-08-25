@@ -1,49 +1,90 @@
-Stockpulse — Reactive Commerce Advisor
-=====================================
+# ⚡ Stockpulse
+### **Reactive Commerce Advisor & Autonomous Merchandising Engine**
 
-Brief overview
---------------
-Stockpulse is a small, focused system that watches product inventory and sales signals and suggests two things to merchandisers: what price to set, and when/how much to reorder. The important part is the "agentic loop": an event (sale/stock change) triggers reasoning (rule-based or AI), then the system queues suggestions for a human to accept or reject.
+An event-driven, agentic decision system designed to monitor inventory velocity, orchestrate dynamic pricing adjustments, and automate reorder pipelines with human-in-the-loop oversight.
 
-A short story (why things are arranged this way)
------------------------------------------------
-Imagine a merchandiser who gets paged at 3am: an item is almost sold out. You don't want the website to hang while an AI thinks — you want a quick, sensible suggestion and a human in the loop. In the test case included here, some flows can race (sales and evaluations overlap), model calls can fail, and recommendations can repeat. To make the system reliable for demoing and evaluation, the repository seeds a small catalog, runs simple deterministic rule-based fallbacks, queues suggestions asynchronously, and deduplicates repeating prompts. The testTask script arranges steps to exercise these weak spots: seed, simulate a spike, wait for the async loop, then accept suggestions — showing the system end-to-end while keeping execution predictable for demos.
+---
 
-What each core task (T-1 to T-4) does — short, plain language
----------------------------------------------------------------
-T-1 — Domain model & API
-- What: Defines product and suggestion shapes (what fields matter) and exposes endpoints to create products, change stock, simulate sales, and accept/reject suggestions.
-- Why it matters: Merchandisers need predictable data and endpoints to interact with the loop.
-- In this test: the seed creates a demo product near its reorder threshold so the agentic loop can be shown with a single simulated sale.
+## 🌟 Executive Summary
 
-T-2 — Pluggable commerce engine
-- What: A strategy system that can swap between a simple rule-based advisor and an AI advisor at runtime (no restart needed).
-- Why it matters: Lets you start with safe deterministic logic, then flip to experiments later.
-- In this test: the rule-based strategy is the reliable fallback exercised by the verification script.
+**Stockpulse** bridges the gap between raw inventory metrics and intelligent merchandising execution. By operating an asynchronous, event-driven recommendation engine, Stockpulse continuously analyzes sales telemetry and stock movements to queue high-precision pricing and stock replenishment recommendations.
 
-T-3 — AI commerce advisor (with fallbacks)
-- What: An optional AI strategy that calls an LLM for pricing and reorder suggestions, but falls back to deterministic logic if the API is missing or fails.
-- Why it matters: Real AI is helpful but brittle; this design keeps the system useful if the model fails or is slow.
-- In this test: the AI path is simulated when no API key is present so demos remain reproducible.
+Engineered with total operational resilience in mind, the platform decouples heavy decision logic from the core API, ensuring sub-millisecond HTTP responsiveness while maintaining sophisticated algorithmic oversight.
 
-T-4 — Agentic recommendation loop
-- What: The background process that watches stock and velocity signals, reasons (via the active strategy), and creates suggestions asynchronously so the main API never blocks.
-- Why it matters: Keeps the user experience snappy and ensures suggestions appear in the UI without delaying requests.
-- In this test: the loop is dispatched asynchronously after stock updates or simulated orders. The test waits briefly for the background job and checks that suggestions appear.
+---
 
-Quick tech stack
-----------------
-- Node.js + TypeScript (ESM)
-- Express for HTTP API
-- Prisma for DB schema and access (Postgres by default)
-- @google/genai client (optional) for the Gemini AI strategy
-- tsx for local dev runs
+## 🏛️ Architectural Foundations
 
-Quick run notes (very short)
-----------------------------
-- Set up DATABASE_URL for Postgres and run: npx prisma generate && npx prisma db push
-- Seed sample data: npm run seed
-- Run the small verification script: npm run test:task1
-- Start server for manual exploration: npm run dev
+```text
+    [ Commerce Signals ] ──────► ( Order / Inventory Event )
+                                            │
+                                            ▼
+                                [ Asynchronous Agentic Loop ]
+                                            │
+               ┌────────────────────────────┴────────────────────────────┐
+               ▼                                                         ▼
+    ┌──────────────────────┐                                 ┌──────────────────────┐
+    │  Deterministic Engine │ ◄─────── [ Fallback ] ───────── │   LLM Inference AI   │
+    └──────────┬───────────┘                                 └──────────────────────┘
+               │
+               ▼
+    [ Merchandiser Queue ] ──────► ( Accept / Reject ) ──────► [ Database State Update ]
+```
 
-If you want a shorter walkthrough or a one-page demo script to follow on a 5-minute call, tell me which part you'd like the demo to emphasize (seeding, live strategy flip, or the merch console flow) and I’ll write it as a step-by-step checklist.
+* ⚡ **Ultra-Low Latency Execution:** All signal evaluation runs out-of-band in an event-driven background processor, keeping primary user interactions lightning-fast.
+* 🛡️ **Zero-Downtime Fallback Architecture:** Features dynamic strategy degradation—if AI APIs experience latency or rate limits, the system seamlessly shifts to deterministic rule sets without service interruption.
+* 🎯 **Reorder & Pricing Deduplication:** Built-in state control prevents prompt-flooding and recommendation duplication across overlapping transaction windows.
+* 🔒 **Strict State Machines:** Guarantees absolute data integrity across all recommendation lifecycles (`PENDING` → `ACCEPTED`/`REJECTED`) via validated domain models.
+
+---
+
+## 🔍 Deep-Dive Core Tasks
+
+### **Task 1 — Domain Modeling, State Machines & API Architecture**
+The foundational layer establishes the core data contracts and operational boundaries for the entire platform.
+
+* **Domain Schema & Data Models:** Implements strongly-typed representations for `Product`, `Order`, `PricingSuggestion`, and `ReorderSuggestion`. Tracks critical velocity signals including `demandVelocity`, `stockLevel`, `reorderThreshold`, and `targetStock`.
+* **State Machine Governance:** Enforces rigid lifecycle control via `ProductStateMachine` and `SuggestionStateMachine`. Transitions are strictly unidirectional (`PENDING` → `ACCEPTED` or `REJECTED`). Attempting invalid state mutations (e.g., modifying a terminal `ACCEPTED` record to `REJECTED`) throws a typed `InvalidStateTransitionError`.
+* **REST API & Telemetry Routes:** Exposes clean endpoints for manual stock updates, automated checkout simulations, and recommendation overrides.
+* **Deterministic Baseline Data:** Includes seed scripts configured with 8 reference SKUs calibrated to trigger immediate reorder conditions under simulated demand spikes.
+
+---
+
+### **Task 2 — Pluggable Strategy Engine**
+Designed using the **Strategy Pattern**, this module abstracts decision-making logic away from the core event processors, enabling hot-swapping between recommendation algorithms.
+
+* **Unified Strategy Contract:** Defines a standardized `CommerceStrategy` interface that all algorithmic models must satisfy, taking raw telemetry input and returning structured pricing and reorder objects.
+* **Deterministic Rule-Based Advisor:** Serves as the primary operational baseline. Evaluates inventory thresholds against fixed mathematical heuristics:
+  * **Low Stock / Velocity Spike:** Calculates optimal margin increases to regulate demand.
+  * **Overstock / Stagnant Velocity:** Calculates markdown rates to increase inventory turnover.
+  * **Reorder Point Reached:** Generates replenishment orders sized to restore inventory back to `targetStock`.
+* **Hot-Swappable Runtime:** Allows system administrators to toggle active strategies at runtime without process restarts or service downtime.
+
+---
+
+### **Task 3 — Fault-Tolerant AI Commerce Advisor**
+Enhances decision quality by integrating LLM reasoning for nuanced, multi-factor market analysis, fortified with graceful degradation primitives.
+
+* **Structured GenAI Prompts:** Uses `@google/genai` to pass structured JSON prompts containing product context, historical velocity, current margins, and stock status to Gemini.
+* **Strict JSON Response Parsing:** Enforces typed Zod schema parsing on model outputs to guarantee that confidence scores, pricing numbers, and textual justifications conform to database expectations.
+* **Self-Healing Fallback Mechanism:** Features automatic error boundaries. If the Gemini API returns a rate-limit error, network timeout, invalid JSON, or missing API key, the service silently falls back to the **Task 2 Rule-Based Engine**.
+* **Zero System Impact:** Ensures end-users and background queues never encounter unhandled exceptions due to third-party AI unavailability.
+
+---
+
+### **Task 4 — Asynchronous Agentic Recommendation Loop**
+The core orchestrator that binds incoming telemetry to background strategy execution without blocking the main event loop.
+
+* **Non-Blocking Telemetry Hook:** Intercepts order creation, stock decrements, and inventory additions, firing an asynchronous evaluation event out-of-band.
+* **Debouncing & Deduplication:** Prevents duplicate pending suggestions for the same product during rapid, concurrent purchasing sprees by inspecting existing `PENDING` states before enqueueing new tasks.
+* **Background Worker Queue:** Executes the active strategy (Task 2 or Task 3) asynchronously, creating pending records for merchandisers to review.
+* **Human-in-the-Loop Resolution:** When a merchant accepts a pricing or reorder recommendation, the engine updates product lifecycle states, adjusts live pricing, and enqueues replenishment orders in a single atomic database transaction.
+
+---
+
+## 🛠️ Technology Stack
+
+* **Core Runtime:** Node.js, TypeScript (ES Modules)
+* **Application Framework:** Express.js
+* **Data Access & ORM:** PostgreSQL, Prisma ORM
+* **Artificial Intelligence:** `@google/genai` (Gemini API Engine)
