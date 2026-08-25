@@ -1,0 +1,20 @@
+{
+  "name": "stockpulse",
+  "version": "1.0.0",
+  "description": "Stockpulse - Reactive Commerce Advisor for ShopStream",
+  "private": true,
+  "scripts": {
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "build:server": "npm run build --prefix server",
+    "build:client": "npm run build --prefix client",
+    "build": "npm run build:server && npm run build:client",
+    "seed": "npm run seed --prefix server",
+    "prisma:generate": "npx prisma generate",
+    "prisma:push": "npx prisma db push"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

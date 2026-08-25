@@ -1,0 +1,144 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum ProductCategory {
+  ELECTRONICS
+  APPAREL
+  HOME
+}
+
+enum ProductLifecycle {
+  ACTIVE
+  PRICE_REVIEW_PENDING
+  OUT_OF_STOCK
+}
+
+enum PriceChangeDirection {
+  INCREASE
+  DECREASE
+  HOLD
+}
+
+enum SuggestionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum TriggerReason {
+  INITIAL
+  INVENTORY_LOW
+  DEMAND_SPIKE
+  MANUAL
+}
+
+enum StrategyType {
+  RULE_BASED
+  AI_GEMINI
+}
+
+model Product {
+  id                 String           @id @default(uuid())
+  sku                String           @unique
+  name               String
+  category           ProductCategory
+  currentPrice       Float
+  stockLevel         Int
+  reorderThreshold   Int
+  demandVelocity     Int              @default(0) // Orders in the last 24h
+  lifecycle          ProductLifecycle @default(ACTIVE)
+
+  // Sprint 2 & 3 Extension Points
+  costPrice          Float?           // Margin floor protection
+  supplierId         String?          // Supplier replenishment routing
+  marginFloor        Float?           // Minimum allowable profit margin percentage
+  competitorPrice    Float?           // Real-time market scraped baseline price
+
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  pricingSuggestions PricingSuggestion[]
+  reorderSuggestions ReorderSuggestion[]
+  snapshots          InventorySnapshot[]
+  orders             OrderLog[]
+
+  @@index([category])
+  @@index([lifecycle])
+  @@index([stockLevel])
+}
+
+model PricingSuggestion {
+  id                 String               @id @default(uuid())
+  productId          String
+  product            Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  currentPrice       Float
+  recommendedPrice   Float
+  changeDirection    PriceChangeDirection
+  confidence         Float                // 0.0 to 1.0
+  reasoning          String               @db.Text
+  status             SuggestionStatus     @default(PENDING)
+  triggerReason      TriggerReason
+  strategyUsed       StrategyType         @default(RULE_BASED)
+  createdAt          DateTime             @default(now())
+  resolvedAt         DateTime?
+
+  @@index([productId, status])
+  @@index([status])
+  @@index([triggerReason])
+}
+
+model ReorderSuggestion {
+  id                    String           @id @default(uuid())
+  productId             String
+  product               Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  currentStock          Int
+  recommendedQuantity   Int
+  suggestedLeadTimeDays Int
+  confidence            Float            // 0.0 to 1.0
+  reasoning             String           @db.Text
+  status                SuggestionStatus @default(PENDING)
+  triggerReason         TriggerReason
+  strategyUsed          StrategyType     @default(RULE_BASED)
+  createdAt             DateTime         @default(now())
+  resolvedAt            DateTime?
+
+  @@index([productId, status])
+  @@index([status])
+  @@index([triggerReason])
+}
+
+model InventorySnapshot {
+  id             String   @id @default(uuid())
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stockLevel     Int
+  demandVelocity Int
+  triggerEvent   String
+  timestamp      DateTime @default(now())
+
+  @@index([productId, timestamp])
+}
+
+model OrderLog {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+  unitPrice Float
+  timestamp DateTime @default(now())
+
+  @@index([productId, timestamp])
+}
+
+model SystemConfig {
+  id             String       @id @default("active_config")
+  activeStrategy StrategyType @default(RULE_BASED)
+  updatedAt      DateTime     @updatedAt
+}

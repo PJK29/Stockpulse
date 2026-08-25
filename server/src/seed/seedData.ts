@@ -1,0 +1,101 @@
+import { ProductCategory } from '../domain/types.js';
+import { ICreateProductDTO } from '../services/productService.js';
+
+export const SEED_PRODUCTS: ICreateProductDTO[] = [
+  {
+    sku: 'SKU-EL-101',
+    name: 'Aura Pro Wireless Noise-Cancelling Headphones',
+    category: ProductCategory.ELECTRONICS,
+    currentPrice: 199.99,
+    stockLevel: 12, // Near threshold (10) -> Primary Demo Candidate!
+    reorderThreshold: 10,
+    costPrice: 110.0,
+    supplierId: 'SUP-SONIC-01',
+    marginFloor: 0.2,
+    competitorPrice: 209.99,
+  },
+  {
+    sku: 'SKU-EL-102',
+    name: 'Quantum OLED Ultra 27" 240Hz Gaming Monitor',
+    category: ProductCategory.ELECTRONICS,
+    currentPrice: 449.0,
+    stockLevel: 4, // Below threshold -> Immediate Low Inventory candidate
+    reorderThreshold: 8,
+    costPrice: 280.0,
+    supplierId: 'SUP-DISP-09',
+    marginFloor: 0.18,
+    competitorPrice: 459.0,
+  },
+  {
+    sku: 'SKU-EL-103',
+    name: 'PulseStream 4K 60FPS Waterproof Action Camera',
+    category: ProductCategory.ELECTRONICS,
+    currentPrice: 129.5,
+    stockLevel: 45,
+    reorderThreshold: 15,
+    costPrice: 65.0,
+    supplierId: 'SUP-OPTIC-04',
+    marginFloor: 0.25,
+    competitorPrice: 135.0,
+  },
+  {
+    sku: 'SKU-AP-201',
+    name: 'Merino Wool Thermal Performance Zip Hoodie',
+    category: ProductCategory.APPAREL,
+    currentPrice: 89.0,
+    stockLevel: 85, // High stock -> Great for Flash Sale Spike Demo
+    reorderThreshold: 20,
+    costPrice: 35.0,
+    supplierId: 'SUP-TEX-12',
+    marginFloor: 0.3,
+    competitorPrice: 95.0,
+  },
+  {
+    sku: 'SKU-AP-202',
+    name: 'TechWeave Waterproof Breathable Commuter Jacket',
+    category: ProductCategory.APPAREL,
+    currentPrice: 145.0,
+    stockLevel: 7, // Low stock
+    reorderThreshold: 12,
+    costPrice: 60.0,
+    supplierId: 'SUP-TEX-12',
+    marginFloor: 0.25,
+    competitorPrice: 149.0,
+  },
+  {
+    sku: 'SKU-AP-203',
+    name: 'FlexKnit Carbon Minimalist Running Shoes',
+    category: ProductCategory.APPAREL,
+    currentPrice: 119.0,
+    stockLevel: 60,
+    reorderThreshold: 25,
+    costPrice: 48.0,
+    supplierId: 'SUP-FOOT-02',
+    marginFloor: 0.22,
+    competitorPrice: 125.0,
+  },
+  {
+    sku: 'SKU-HM-301',
+    name: 'Smart Ceramic Ultrasonic Aroma Diffuser & Light',
+    category: ProductCategory.HOME,
+    currentPrice: 49.99,
+    stockLevel: 18, // Near threshold (15)
+    reorderThreshold: 15,
+    costPrice: 18.5,
+    supplierId: 'SUP-HOME-88',
+    marginFloor: 0.35,
+    competitorPrice: 54.99,
+  },
+  {
+    sku: 'SKU-HM-302',
+    name: 'Artisan Borosilicate Glass Thermal Coffee Carafe',
+    category: ProductCategory.HOME,
+    currentPrice: 38.0,
+    stockLevel: 110, // Overstocked
+    reorderThreshold: 20,
+    costPrice: 12.0,
+    supplierId: 'SUP-GLASS-03',
+    marginFloor: 0.3,
+    competitorPrice: 39.99,
+  },
+];
