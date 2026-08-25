@@ -1,3 +1,14 @@
+#
+# Markdown and HTML documentation files
+*.md
+*.MD
+stockpulse-brief 1.html
+docs/
+
+# Temporary and test files
+testfile
+testfile.*
+
 # Dependencies
 node_modules/
 .pnp
