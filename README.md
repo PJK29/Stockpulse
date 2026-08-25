@@ -86,5 +86,5 @@ The core orchestrator that binds incoming telemetry to background strategy execu
 
 * **Core Runtime:** Node.js, TypeScript (ES Modules)
 * **Application Framework:** Express.js
-* **Data Access & ORM:** PostgreSQL, Prisma ORM
+* **Data Access & ORM:** PostgreSQL, Supabase Prisma ORM
 * **Artificial Intelligence:** `@google/genai` (Gemini API Engine)
